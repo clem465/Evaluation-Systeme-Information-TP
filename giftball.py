@@ -1,6 +1,3 @@
-from random import randint
-
-
 class State:
     def insert_token(self, machine):
         pass
@@ -45,48 +42,17 @@ class HasTokenState(State):
         print("Piece rendue.")
 
     def turn_crank(self, machine):
-        if randint(1, 5) == 1:
-            machine.current_state = machine.winner_state
-        else:
-            machine.balls -= 1
-            print("Une balle surprise est distribuee.")
-
-            if machine.balls == 0:
-                machine.current_state = machine.out_of_balls_state
-            else:
-                machine.current_state = machine.no_token_state
-
-    def refill(self, machine, balls):
-        machine.balls += balls
-        print("La machine a ete rechargee.")
-
-
-class WinnerState(State):
-    def insert_token(self, machine):
-        print("Attendez : les balles sont en cours de distribution.")
-
-    def eject_token(self, machine):
-        print("Impossible : la piece a deja ete utilisee.")
-
-    def turn_crank(self, machine):
-        print("La manivelle a deja ete tournee.")
-
-    def refill(self, machine, balls):
-        machine.balls += balls
-        print("La machine a ete rechargee.")
-
-    def give_prize(self, machine):
-        if machine.balls >= 2:
-            machine.balls -= 2
-            print("Bravo ! Deux balles surprise sont distribuees.")
-        else:
-            machine.balls -= 1
-            print("Bravo ! Une seule balle est distribuee, car il n'en restait qu'une.")
+        machine.balls -= 1
+        print("Une balle surprise est distribuee.")
 
         if machine.balls == 0:
             machine.current_state = machine.out_of_balls_state
         else:
             machine.current_state = machine.no_token_state
+
+    def refill(self, machine, balls):
+        machine.balls += balls
+        print("La machine a ete rechargee.")
 
 
 class OutOfBallsState(State):
@@ -115,7 +81,6 @@ class GiftBall:
 
         self.no_token_state = NoTokenState()
         self.has_token_state = HasTokenState()
-        self.winner_state = WinnerState()
         self.out_of_balls_state = OutOfBallsState()
 
         if self.balls == 0:
@@ -131,9 +96,6 @@ class GiftBall:
 
     def turn_crank(self):
         self.current_state.turn_crank(self)
-
-        if self.current_state == self.winner_state:
-            self.current_state.give_prize(self)
 
     def refill(self, balls):
         self.current_state.refill(self, balls)
