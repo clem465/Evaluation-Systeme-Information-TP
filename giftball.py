@@ -1,63 +1,145 @@
-from enum import Enum, auto
+from random import randint
 
 
-class State(Enum):
-    NO_TOKEN = auto()
-    HAS_TOKEN = auto()
-    OUT_OF_BALLS = auto()
+class State:
+    def insert_token(self, machine):
+        pass
+
+    def eject_token(self, machine):
+        pass
+
+    def turn_crank(self, machine):
+        pass
+
+    def refill(self, machine, balls):
+        pass
 
 
-class GiftBall: # Classe pour representer une machine a balles surprise
-    def __init__(self, balls=3, tokens=3): # Constructeur pour initialiser la machine avec un nombre de balles et de pieces
-        self.balls = balls
-        self.tokens = tokens
-        self.current_state = State.NO_TOKEN
-
-        if self.balls == 0:
-            self.current_state = State.OUT_OF_BALLS
-
-    def insert_token(self): # Methode pour inserer une piece dans la machine
-        if self.current_state == State.OUT_OF_BALLS:
-            print("Impossible : il n'y a plus de balles.")
-        elif self.current_state == State.HAS_TOKEN:
-            print("Une piece est deja inseree.")
-        elif self.tokens == 0:
+class NoTokenState(State):
+    def insert_token(self, machine):
+        if machine.tokens == 0:
             print("Impossible : vous n'avez plus de pieces.")
         else:
-            self.tokens -= 1
-            self.current_state = State.HAS_TOKEN
+            machine.tokens -= 1
+            machine.current_state = machine.has_token_state
             print("Piece inseree.")
 
-    def eject_token(self): # Methode pour ejecter une piece si elle a ete inseree
-        if self.current_state == State.HAS_TOKEN:
-            self.tokens += 1
-            self.current_state = State.NO_TOKEN
-            print("Piece rendue.")
-        else:
-            print("Aucune piece a rendre.")
+    def eject_token(self, machine):
+        print("Aucune piece a rendre.")
 
-    def turn_crank(self): # Methode pour tourner la manivelle et distribuer une balle
-        if self.current_state == State.OUT_OF_BALLS:
-            print("Impossible : la machine est vide.")
-        elif self.current_state == State.NO_TOKEN:
-            print("Inserez une piece avant de tourner la manivelle.")
-        else:
-            self.balls -= 1
-            print("Une balle surprise est distribuee.")
+    def turn_crank(self, machine):
+        print("Inserez une piece avant de tourner la manivelle.")
 
-            if self.balls == 0:
-                self.current_state = State.OUT_OF_BALLS
-            else:
-                self.current_state = State.NO_TOKEN
-
-    def refill(self, balls): # Methode pour recharger la machine avec des balles
-        self.balls += balls
-        if self.balls > 0 and self.current_state == State.OUT_OF_BALLS:
-            self.current_state = State.NO_TOKEN
+    def refill(self, machine, balls):
+        machine.balls += balls
         print("La machine a ete rechargee.")
 
+
+class HasTokenState(State):
+    def insert_token(self, machine):
+        print("Une piece est deja inseree.")
+
+    def eject_token(self, machine):
+        machine.tokens += 1
+        machine.current_state = machine.no_token_state
+        print("Piece rendue.")
+
+    def turn_crank(self, machine):
+        if randint(1, 5) == 1:
+            machine.current_state = machine.winner_state
+        else:
+            machine.balls -= 1
+            print("Une balle surprise est distribuee.")
+
+            if machine.balls == 0:
+                machine.current_state = machine.out_of_balls_state
+            else:
+                machine.current_state = machine.no_token_state
+
+    def refill(self, machine, balls):
+        machine.balls += balls
+        print("La machine a ete rechargee.")
+
+
+class WinnerState(State):
+    def insert_token(self, machine):
+        print("Attendez : les balles sont en cours de distribution.")
+
+    def eject_token(self, machine):
+        print("Impossible : la piece a deja ete utilisee.")
+
+    def turn_crank(self, machine):
+        print("La manivelle a deja ete tournee.")
+
+    def refill(self, machine, balls):
+        machine.balls += balls
+        print("La machine a ete rechargee.")
+
+    def give_prize(self, machine):
+        if machine.balls >= 2:
+            machine.balls -= 2
+            print("Bravo ! Deux balles surprise sont distribuees.")
+        else:
+            machine.balls -= 1
+            print("Bravo ! Une seule balle est distribuee, car il n'en restait qu'une.")
+
+        if machine.balls == 0:
+            machine.current_state = machine.out_of_balls_state
+        else:
+            machine.current_state = machine.no_token_state
+
+
+class OutOfBallsState(State):
+    def insert_token(self, machine):
+        print("Impossible : il n'y a plus de balles.")
+
+    def eject_token(self, machine):
+        print("Aucune piece a rendre.")
+
+    def turn_crank(self, machine):
+        print("Impossible : la machine est vide.")
+
+    def refill(self, machine, balls):
+        machine.balls += balls
+
+        if machine.balls > 0:
+            machine.current_state = machine.no_token_state
+
+        print("La machine a ete rechargee.")
+
+
+class GiftBall:
+    def __init__(self, balls=3, tokens=3):
+        self.balls = balls
+        self.tokens = tokens
+
+        self.no_token_state = NoTokenState()
+        self.has_token_state = HasTokenState()
+        self.winner_state = WinnerState()
+        self.out_of_balls_state = OutOfBallsState()
+
+        if self.balls == 0:
+            self.current_state = self.out_of_balls_state
+        else:
+            self.current_state = self.no_token_state
+
+    def insert_token(self):
+        self.current_state.insert_token(self)
+
+    def eject_token(self):
+        self.current_state.eject_token(self)
+
+    def turn_crank(self):
+        self.current_state.turn_crank(self)
+
+        if self.current_state == self.winner_state:
+            self.current_state.give_prize(self)
+
+    def refill(self, balls):
+        self.current_state.refill(self, balls)
+
     def show_status(self):
-        print(f"Etat : {self.current_state.name}")
+        print(f"Etat : {self.current_state.__class__.__name__}")
         print(f"Balles restantes : {self.balls}")
         print(f"Pieces restantes : {self.tokens}")
 
@@ -77,4 +159,3 @@ if __name__ == "__main__":
     machine.turn_crank()
     machine.insert_token()
     machine.show_status()
-    
